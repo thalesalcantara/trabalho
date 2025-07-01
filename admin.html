@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel Admin</title>
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<h2>Painel do Administrador - COOPEX</h2>
+<button onclick="logout()">Sair</button>
+<form id="uploadForm">
+  <label>Planilha Excel (.xlsx):<input type="file" id="fileInput" accept=".xlsx" required></label>
+  <button type="submit">Processar e Enviar</button>
+</form>
+<div id="status"></div>
+<div id="preview" style="margin-top: 20px;"></div>
+<script>
+if (localStorage.getItem("adminLogado") !== "true") {
+  window.location.href = "admin-login.html";
+}
+
+function logout() {
+  localStorage.removeItem("adminLogado");
+  window.location.href = "admin-login.html";
+}
+
+const API_BASE = 'http://localhost:5000/api';
+
+document.getElementById("uploadForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  
+  const fileInput = document.getElementById("fileInput");
+  const file = fileInput.files[0];
+  
+  if (!file) {
+    alert("Selecione um arquivo Excel");
+    return;
+  }
+  
+  const statusDiv = document.getElementById("status");
+  const previewDiv = document.getElementById("preview");
+  
+  statusDiv.textContent = "Processando planilha...";
+  
+  try {
+    // Primeiro, processar a planilha
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const processResponse = await fetch(`${API_BASE}/processar-planilha`, {
+      method: 'POST',
+      body: formData
+    });
+    
+    const processResult = await processResponse.json();
+    
+    if (!processResult.success) {
+      throw new Error(processResult.error);
+    }
+    
+    // Mostrar preview dos dados
+    previewDiv.innerHTML = `
+      <h3>Dados processados (${processResult.total} registros):</h3>
+      <table border="1" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <th>Cooperado</th>
+          <th>Email</th>
+          <th>Data</th>
+          <th>Turno</th>
+          <th>Horário</th>
+          <th>Contrato</th>
+        </tr>
+        ${processResult.escalas.slice(0, 10).map(escala => `
+          <tr>
+            <td>${escala.cooperado}</td>
+            <td>${escala.email}</td>
+            <td>${escala.data}</td>
+            <td>${escala.turno}</td>
+            <td>${escala.horario}</td>
+            <td>${escala.contrato}</td>
+          </tr>
+        `).join('')}
+        ${processResult.escalas.length > 10 ? '<tr><td colspan="6">... e mais registros</td></tr>' : ''}
+      </table>
+      <button onclick="enviarEmails()" style="margin-top: 10px;">Confirmar e Enviar E-mails</button>
+    `;
+    
+    // Armazenar dados para envio posterior
+    window.escalasProcessadas = processResult.escalas;
+    statusDiv.textContent = "Planilha processada com sucesso. Revise os dados e clique em 'Confirmar e Enviar E-mails'.";
+    
+  } catch (error) {
+    statusDiv.textContent = `Erro: ${error.message}`;
+    previewDiv.innerHTML = '';
+  }
+});
+
+async function enviarEmails() {
+  const statusDiv = document.getElementById("status");
+  
+  if (!window.escalasProcessadas) {
+    alert("Nenhuma escala processada");
+    return;
+  }
+  
+  statusDiv.textContent = "Enviando e-mails...";
+  
+  try {
+    const response = await fetch(`${API_BASE}/enviar-escalas`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        escalas: window.escalasProcessadas
+      })
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      statusDiv.textContent = `E-mails enviados com sucesso! ${result.enviados} cooperados receberam suas escalas.`;
+      if (result.erros.length > 0) {
+        statusDiv.textContent += ` Erros: ${result.erros.join(', ')}`;
+      }
+    } else {
+      throw new Error(result.error);
+    }
+    
+  } catch (error) {
+    statusDiv.textContent = `Erro ao enviar e-mails: ${error.message}`;
+  }
+}
+</script>
+</body>
+</html>

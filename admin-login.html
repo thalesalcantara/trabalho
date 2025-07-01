@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Login Admin - COOPEX</title>
+<link rel="stylesheet" href="style.css"></head>
+<body>
+<h2>Admin - COOPEX</h2>
+<form id="adminLoginForm">
+  <label>Usuário:<input type="text" id="usuario" required /></label>
+  <label>Senha:<input type="password" id="senha" required /></label>
+  <button type="submit">Entrar</button>
+</form>
+<script>
+document.getElementById("adminLoginForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const usuario = document.getElementById("usuario").value.trim().toLowerCase();
+  const senha = document.getElementById("senha").value;
+  if (usuario === "coopex" && senha === "05062721") {
+    localStorage.setItem("adminLogado", "true");
+    window.location.href = "admin.html";
+  } else {
+    alert("Usuário ou senha incorretos.");
+  }
+});
+</script>
+</body>
+</html>

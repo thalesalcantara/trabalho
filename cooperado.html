@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Minha Escala</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <h2>Minha Escala</h2>
+  <button onclick="firebase.auth().signOut().then(() => location.href='index.html')">Sair</button>
+  <div id="escalaContainer">Carregando escala...</div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script src="firebase.js"></script>
+  <script>
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    auth.onAuthStateChanged(async (user) => {
+      if (!user) return location.href = "index.html";
+      const userDoc = await db.collection("users").doc(user.uid).get();
+      const nome = userDoc.data().name;
+      const container = document.getElementById("escalaContainer");
+      db.collection("escalas").where("cooperado", "==", nome).orderBy("data")
+        .get().then(snapshot => {
+          if (snapshot.empty) return container.innerHTML = "<p>Sem escalas atribuídas.</p>";
+          container.innerHTML = "";
+          snapshot.forEach(doc => {
+            const esc = doc.data();
+            const div = document.createElement("div");
+            div.className = "escala-item";
+            div.innerHTML = `${esc.data} | ${esc.turno} | ${esc.horario} | ${esc.contrato}`;
+            container.appendChild(div);
+          });
+        });
+    });
+  </script>
+</body>
+</html>
+

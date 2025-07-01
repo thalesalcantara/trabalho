@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Login - COOPEX</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+  <h2>Login COOPEX</h2>
+  <form id="loginForm">
+    <label>Email:<input type="email" id="email" required/></label>
+    <label>Senha:<input type="password" id="password" required/></label>
+    <button type="submit">Entrar</button>
+  </form>
+  <p>
+    <a href="register.html">Cadastrar Cooperado</a> |
+    <a href="reset-password.html">Esqueci a senha</a>
+  </p>
+
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <script src="firebase.js"></script>
+  <script>
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    document.getElementById("loginForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = e.target.email.value.trim();
+      const password = e.target.password.value;
+      try {
+        const userCredential = await auth.signInWithEmailAndPassword(email, password);
+        const uid = userCredential.user.uid;
+        const doc = await db.collection("users").doc(uid).get();
+        if (doc.exists && doc.data().role === "cooperado") {
+          window.location.href = "cooperado.html";
+        } else {
+          alert("Somente cooperados podem usar este login.");
+          auth.signOut();
+        }
+      } catch (err) {
+        alert("Erro ao logar: " + err.message);
+      }
+    });
+  </script>
+</body>
+</html>
+
